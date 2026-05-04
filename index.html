@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0057)file:///C:/Users/Maintenant%20Pret/Downloads/index_5.html -->
+<!-- saved from url=(0057)file:///C:/Users/Maintenant%20Pret/Downloads/index_6.html -->
 <html lang="fr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -81,7 +81,7 @@ body{font-family:var(--display);background:var(--bg);color:var(--text);min-heigh
 .btn-primary:hover{background:#00cc8e;transform:translateY(-1px)}
 .btn-primary:active{transform:translateY(0)}
 .auth-msg{font-size:12px;padding:9px 12px;border-radius:6px;margin-bottom:14px;display:none}
-.auth-msg.err{background:var(--red2);color:var(--red);border:1px solid rgba(255,67,101,.2)} 
+.auth-msg.err{background:var(--red2);color:var(--red);border:1px solid rgba(255,67,101,.2)}
 .auth-msg.ok{background:var(--green2);color:var(--green);border:1px solid rgba(0,229,160,.2)}
 
 /* ═══════════════════════════════════════════
@@ -373,7 +373,7 @@ body{font-family:var(--display);background:var(--bg);color:var(--text);min-heigh
 <body>
 
 <!-- ═══════════ AUTH ═══════════ -->
-<div id="auth-page" style="display: flex;">
+<div id="auth-page">
   <div class="auth-card">
     <div class="auth-logo">TradeLog</div>
     <div class="auth-tagline">Professional Trading Journal · ICT Edition</div>
@@ -825,11 +825,13 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 const SB_URL = 'https://qluwaliszmewsdsyhibg.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsdXdhbGlzem1ld3Nkc3loaWJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MjkyMTksImV4cCI6MjA5MzUwNTIxOX0.00sAPjX8ZwJUonm7n5ufRhjnW-SVvTMg9Sb6O8TXJqU';
 const db = supabase.createClient(SB_URL, SB_KEY);
+window.db = db;
 
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
 let user = null;
+Object.defineProperty(window,'user',{get:()=>user,set:v=>user=v});
 let trades = [];
 let editId = null;
 let checks = {};
@@ -932,7 +934,7 @@ function nav(id, el) {
 // ═══════════════════════════════════════════
 // LOAD TRADES
 // ═══════════════════════════════════════════
-async function loadTrades() {
+window.loadTrades = async function loadTrades {
   if (!user) return;
   const {data, error} = await db.from('trades').select('*')
     .eq('user_id', user.id).order('created_at', {ascending:false});
