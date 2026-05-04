@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0057)file:///C:/Users/Maintenant%20Pret/Downloads/index_4.html -->
+<!-- saved from url=(0057)file:///C:/Users/Maintenant%20Pret/Downloads/index_5.html -->
 <html lang="fr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -313,7 +313,7 @@ body{font-family:var(--display);background:var(--bg);color:var(--text);min-heigh
 .tc-info{flex:1}
 .tc-top{display:flex;align-items:center;gap:8px;margin-bottom:3px}
 .tc-instrument{font-size:14px;font-weight:600;letter-spacing:-.2px}
-.tc-date{font-size:11px;color:var(--text3);font-family:var(--mono)} 
+.tc-date{font-size:11px;color:var(--text3);font-family:var(--mono)}
 .tc-bottom{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);font-family:var(--mono)}
 .tc-metrics{display:flex;align-items:center;gap:16px}
 .tc-metric{text-align:right}
@@ -443,7 +443,8 @@ body{font-family:var(--display);background:var(--bg);color:var(--text);min-heigh
       </div>
       <div class="topbar-right">
         <div id="rr-live-display"></div>
-        <button class="btn-sec" onclick="nav(&#39;analytics&#39;,document.querySelector(&#39;[data-p=analytics]&#39;))">Analytics</button>
+        <button class="btn-sec" onclick="document.getElementById(&#39;import-input&#39;).click()">⬆ Import JSON</button>
+        <input type="file" id="import-input" accept=".json" style="display:none" onchange="importTrade(this)">
         <button class="btn-new" onclick="nav(&#39;new-trade&#39;,document.querySelector(&#39;[data-p=new-trade]&#39;))"><span>＋</span> New trade</button>
       </div>
     </div>
@@ -1506,6 +1507,32 @@ function toast(msg, type='ok') {
   el.className = `toast ${type} show`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+
+// ═══════════════════════════════════════════
+// IMPORT TRADE FROM JSON
+// ═══════════════════════════════════════════
+async function importTrade(input) {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const trades_to_import = Array.isArray(data) ? data : [data];
+    let count = 0;
+    for (const trade of trades_to_import) {
+      trade.user_id = user.id;
+      const {error} = await db.from('trades').insert([trade]);
+      if (!error) count++;
+    }
+    toast(`${count} trade(s) imported ✓`, 'ok');
+    input.value = '';
+    await loadTrades();
+    nav('dashboard', document.querySelector('[data-p=dashboard]'));
+  } catch(e) {
+    toast('Import error: invalid JSON file', 'err');
+  }
 }
 
 function today() { return new Date().toISOString().split('T')[0]; }
