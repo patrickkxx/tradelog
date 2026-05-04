@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0057)file:///C:/Users/Maintenant%20Pret/Downloads/index_7.html -->
+<!-- saved from url=(0057)file:///C:/Users/Maintenant%20Pret/Downloads/index_8.html -->
 <html lang="fr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -81,7 +81,7 @@ body{font-family:var(--display);background:var(--bg);color:var(--text);min-heigh
 .btn-primary:hover{background:#00cc8e;transform:translateY(-1px)}
 .btn-primary:active{transform:translateY(0)}
 .auth-msg{font-size:12px;padding:9px 12px;border-radius:6px;margin-bottom:14px;display:none}
-.auth-msg.err{background:var(--red2);color:var(--red);border:1px solid rgba(255,67,101,.2)} 
+.auth-msg.err{background:var(--red2);color:var(--red);border:1px solid rgba(255,67,101,.2)}
 .auth-msg.ok{background:var(--green2);color:var(--green);border:1px solid rgba(0,229,160,.2)}
 
 /* ═══════════════════════════════════════════
@@ -373,7 +373,7 @@ body{font-family:var(--display);background:var(--bg);color:var(--text);min-heigh
 <body>
 
 <!-- ═══════════ AUTH ═══════════ -->
-<div id="auth-page">
+<div id="auth-page" style="display: flex;">
   <div class="auth-card">
     <div class="auth-logo">TradeLog</div>
     <div class="auth-tagline">Professional Trading Journal · ICT Edition</div>
@@ -443,8 +443,8 @@ body{font-family:var(--display);background:var(--bg);color:var(--text);min-heigh
       </div>
       <div class="topbar-right">
         <div id="rr-live-display"></div>
-        <button class="btn-sec" onclick="document.getElementById(&#39;import-input&#39;).click()">⬆ Import JSON</button>
-        <input type="file" id="import-input" accept=".json" style="display:none" onchange="importTrade(this)">
+        <button class="btn-sec" onclick="triggerImport()">⬆ Import JSON</button>
+        <input type="file" id="import-input" accept=".json" style="display:none">
         <button class="btn-new" onclick="nav(&#39;new-trade&#39;,document.querySelector(&#39;[data-p=new-trade]&#39;))"><span>＋</span> New trade</button>
       </div>
     </div>
@@ -932,7 +932,7 @@ function nav(id, el) {
 // ═══════════════════════════════════════════
 // LOAD TRADES
 // ═══════════════════════════════════════════
-async function loadTrades {
+async function loadTrades() {
   if (!user) return;
   const {data, error} = await db.from('trades').select('*')
     .eq('user_id', user.id).order('created_at', {ascending:false});
@@ -1509,38 +1509,54 @@ function toast(msg, type='ok') {
   toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-
-// ═══════════════════════════════════════════
-// IMPORT TRADE FROM JSON
-// ═══════════════════════════════════════════
-async function importTrade(input) {
-  const file = input.files[0];
-  if (!file) return;
-  try {
-    const text = await file.text();
-    const data = JSON.parse(text);
-    const trades_to_import = Array.isArray(data) ? data : [data];
-    let count = 0;
-    for (const trade of trades_to_import) {
-      trade.user_id = user.id;
-      const {error} = await db.from('trades').insert([trade]);
-      if (!error) count++;
-    }
-    toast(`${count} trade(s) imported ✓`, 'ok');
-    input.value = '';
-    await loadTrades();
-    nav('dashboard', document.querySelector('[data-p=dashboard]'));
-  } catch(e) {
-    toast('Import error: invalid JSON file', 'err');
-  }
-}
-
 function today() { return new Date().toISOString().split('T')[0]; }
 
-// Make globals accessible from console
-window._db = db;
-window._getUser = () => user;
-window._loadTrades = () => loadTrades();
+// ═══ GLOBALS FOR CONSOLE ACCESS ═══
+window._app = {
+  getDb: () => db,
+  getUser: () => user,
+  reload: () => loadTrades()
+};
+
+// ═══ IMPORT FROM JSON ═══
+function triggerImport() {
+  const input = document.getElementById('import-input');
+  input.onchange = async function() {
+    const file = this.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const raw = JSON.parse(text);
+      const list = Array.isArray(raw) ? raw : [raw];
+      const currentUser = user;
+      if (!currentUser) { toast('Please log in first', 'err'); return; }
+      let ok = 0, fail = 0;
+      for (const t of list) {
+        delete t.id;
+        delete t.created_at;
+        t.user_id = currentUser.id;
+        const res = await db.from('trades').insert([t]);
+        if (res.error) {
+          console.error('Insert error:', res.error);
+          fail++;
+        } else {
+          ok++;
+        }
+      }
+      if (ok > 0) {
+        toast(ok + ' trade(s) imported ✓', 'ok');
+        await loadTrades();
+        nav('dashboard', document.querySelector('[data-p=dashboard]'));
+      }
+      if (fail > 0) toast(fail + ' trade(s) failed', 'err');
+    } catch(e) {
+      console.error('Import error:', e);
+      toast('Invalid JSON file', 'err');
+    }
+    this.value = '';
+  };
+  input.click();
+}
 
 function v(id) { return document.getElementById(id)?.value?.trim()||''; }
 </script>
